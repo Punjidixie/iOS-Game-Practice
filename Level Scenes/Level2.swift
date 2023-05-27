@@ -1,0 +1,479 @@
+//
+//  Level2.swift
+//  Practice
+//
+//  Created by Siraphop Rungtragoolchai on 29/9/19.
+//  Copyright © 2019 Siraphop Rungtragoolchai. All rights reserved.
+//
+
+import Foundation
+import SpriteKit
+
+class Level2: RegularLevel{
+    
+    override init(size: CGSize){
+        
+        super.init(size: size)
+        
+        mapWidth = 2048
+        mapHeight = 1536
+        
+        
+        //let skView = self.view as? SKView
+        
+        
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    
+    
+    override func didMove(to view: SKView) {
+        //Camera setup
+        
+        cameraSetup()
+        
+        self.view?.isMultipleTouchEnabled = true
+        self.view!.preferredFramesPerSecond = 120
+        self.view!.showsPhysics = false
+        
+        gameContentNode.anchorPoint = CGPoint(x: 0, y: 0)
+        gameContentNode.zPosition = 0
+        gameContentNode.position = CGPoint(x: 0, y: 0)
+        
+        self.physicsWorld.contactDelegate = self;
+        self.addChild(gameContentNode)
+        
+        background.size = CGSize(width: 2700, height: 8100)
+        background.anchorPoint = CGPoint(x: 0, y: 0)
+        background.position = CGPoint(x: 0, y: 0)
+        background.zPosition = -1
+        gameContentNode.addChild(background)
+    
+        player.position = CGPoint(x: self.size.width * 0.5, y: self.size.height * 0.3)
+        gameContentNode.player = player
+        gameContentNode.addChild(player)
+        
+        addSideWalls();
+        
+        whiteScreen.size = size
+        whiteScreen.position = CGPoint(x: self.size.width * 0.5, y: self.size.height * 0.5)
+        whiteScreen.alpha = 0.5
+        whiteScreen.zPosition = 0.9
+        cameraViewNode.addChild(whiteScreen)
+        
+        textLabel.fontSize = 100
+        textLabel.position = CGPoint(x: self.gameArea.width * 0.5, y: self.gameArea.height * 0.8)
+        textLabel.fontColor = SKColor.black
+        textLabel.text = "Level 2"
+        textLabel.zPosition = 1
+        textLabel.isHidden = false
+        cameraViewNode.addChild(textLabel)
+        
+        textLabel2.fontSize = 50
+        textLabel2.position = CGPoint(x: self.gameArea.width * 0.5, y: self.gameArea.height * 0.7)
+        textLabel2.fontColor = SKColor.black
+        textLabel2.text = "Come Back To Me"
+        textLabel2.zPosition = 1
+        textLabel2.isHidden = true
+        cameraViewNode.addChild(textLabel2)
+        
+        textLabel3.fontSize = 50
+        textLabel3.position = CGPoint(x: self.gameArea.width * 0.5, y: self.gameArea.height * 0.6)
+        textLabel3.fontColor = SKColor.black
+        textLabel3.text = "Tap when you're ready..."
+        textLabel3.zPosition = 1
+        textLabel3.isHidden = true
+        cameraViewNode.addChild(textLabel3)
+        
+        self.addChild(musicNode)
+        
+        transitionToWaitingForStart()
+        
+        
+    }
+    
+   
+    
+    
+    override func update(_ currentTime: TimeInterval){
+        if lastUpdateTime == 0 { //first frame
+            lastUpdateTime = currentTime
+        }
+            
+        else{
+            deltaFrameTime = currentTime - lastUpdateTime
+            lastUpdateTime = currentTime
+        }
+        
+        switch currentSceneState{
+        case .beginningAnimation:
+            break
+        case sceneState.waitingForStart:
+            break
+        case sceneState.inGame:
+            player = gameContentNode.player //the scene controls self.player, which might have been removed because of the newly made player
+            
+            if player.currentPlayerState == Player.playerState.dead {
+                transitionToPostGame()
+
+            }
+            
+            if joystick.active{
+                player.movePlayerCheck(deltaFrameTime: self.deltaFrameTime)
+            }
+            
+            gameContentNode.enumerateChildNodes(withName: "Bullet") {
+                (bullet, stop) in
+                
+                (bullet as! Bullet).updateBullet(deltaFrameTime: self.deltaFrameTime)
+            }
+            
+            gameContentNode.enumerateChildNodes(withName: "EnemyBullet") {
+                (bullet, stop) in
+                (bullet as! EnemyBullet).updateBullet(deltaFrameTime: self.deltaFrameTime)
+            }
+            
+            gameContentNode.enumerateChildNodes(withName: "Enemy") {
+                (enemy, stop) in
+                (enemy as! Enemy).target = self.player
+                (enemy as! Enemy).updateEnemy(deltaFrameTime: self.deltaFrameTime)
+            }
+            
+            gameContentNode.enumerateChildNodes(withName: "Wall") {
+                (wall, stop) in
+                (wall as! Wall).updateWall(deltaFrameTime: self.deltaFrameTime)
+                
+            }
+            
+            gameContentNode.enumerateChildNodes(withName: "Pickable") {
+                (pickable, stop) in
+                (pickable as! Pickable).updatePickable(deltaFrameTime: self.deltaFrameTime)
+            }
+            
+            
+            player.updatePlayer(deltaFrameTime: deltaFrameTime)
+            playerInfo.update()
+            
+            switch currentWave{
+            case 1:
+                var found = false
+                gameContentNode.enumerateChildNodes(withName: "Enemy"){
+                    (enemy, stop) in
+                    found = true
+                }
+                if !found{
+                    currentWave = 1.5
+                    startWave2() //will change to currentWave = 2
+                }
+                break
+            case 2:
+                var found = false
+                gameContentNode.enumerateChildNodes(withName: "Enemy"){
+                    (enemy, stop) in
+                    found = true
+                }
+                if !found{
+                    currentWave = 2.5
+                    startWave3()
+                }
+                break
+            case 3:
+                var found = false
+                gameContentNode.enumerateChildNodes(withName: "Enemy"){
+                    (enemy, stop) in
+                    found = true
+                }
+                if !found{
+                    currentWave = 3.5
+                    startWave4()
+                }
+                break
+            case 4:
+                var found = false
+                gameContentNode.enumerateChildNodes(withName: "Enemy"){
+                    (enemy, stop) in
+                    found = true
+                }
+                if !found{
+                    currentWave = 4.5
+                    transitionToPostGame()
+                }
+                break
+            default:
+                break
+            }
+   
+        case .postGame:
+            break
+            
+        case .waitingToLeave:
+            break
+        case .paused:
+            break
+        }
+        cameraUpdate()
+        
+
+    }
+    
+    override func didSimulatePhysics() { // Physics Bodies are in place
+        
+        switch currentSceneState{
+        case .beginningAnimation:
+            break
+        case sceneState.waitingForStart:
+            break
+        case sceneState.inGame:
+            if joystick.active{
+                player.movePlayer(distance: player.distanceToMove)
+            }
+            
+            gameContentNode.enumerateChildNodes(withName: "Bullet") {
+                (bullet, stop) in
+                (bullet as! Bullet).moveBullet(distance: (bullet as! Bullet).distanceToMove)
+                (bullet as! Bullet).checkCollision()
+                
+            }
+            gameContentNode.enumerateChildNodes(withName: "EnemyBullet") {
+                (bullet, stop) in
+                (bullet as! EnemyBullet).moveBullet(distance: (bullet as! EnemyBullet).distanceToMove)
+                (bullet as! EnemyBullet).checkCollision()
+            }
+            
+            gameContentNode.enumerateChildNodes(withName: "Enemy") {
+                (enemy, stop) in
+                (enemy as! Enemy).moveEnemy(distance: (enemy as! Enemy).distanceToMove)
+            }
+            
+            gameContentNode.enumerateChildNodes(withName: "Pickable") {
+                (pickable, stop) in
+                (pickable as! Pickable).checkCollision()
+            }
+        case sceneState.postGame:
+            break
+            
+        case .waitingToLeave:
+            break
+        case .paused:
+            break
+        }
+        
+        
+        
+        
+        
+    }
+    
+    
+    
+    
+    override func transitionToWaitingForStart(){
+        let wait1Sec = SKAction.wait(forDuration: 1)
+        let showLabel2 = SKAction.run{
+            self.textLabel2.isHidden = false
+        }
+        let showLabel3 = SKAction.run{
+            self.textLabel3.isHidden = false
+        }
+        let changeToWaitingForStart = SKAction.run{
+            self.currentSceneState = .waitingForStart
+        }
+        
+        run(SKAction.sequence([wait1Sec, showLabel2, wait1Sec, showLabel3, changeToWaitingForStart]))
+    }
+    
+    override func transitionToInGame(){
+        currentWave = 0.5
+        let wait1sec = SKAction.wait(forDuration: 1)
+        let waitHalfSec = SKAction.wait(forDuration: 0.5)
+        let showLabel2 = SKAction.run{
+            self.textLabel2.isHidden = false
+        }
+        let showLabel3 = SKAction.run{
+            self.textLabel3.isHidden = false
+        }
+        let hideLabel = SKAction.run{
+            self.textLabel.isHidden = true
+        }
+        let hideLabel2 = SKAction.run{
+            self.textLabel2.isHidden = true
+        }
+        let hideLabel3 = SKAction.run{
+            self.textLabel3.isHidden = true
+        }
+        let hideWhiteScreen = SKAction.run{
+            self.whiteScreen.isHidden = true
+        }
+        let threeSec = SKAction.run{
+            self.textLabel3.text = "3"
+        }
+        let twoSec = SKAction.run{
+            self.textLabel3.text = "2"
+        }
+        let oneSec = SKAction.run{
+            self.textLabel3.text = "1"
+        }
+        let goodluck = SKAction.run{
+            self.textLabel3.text = "Wave 1 - Good luck :)"
+            self.startWave1()
+        }
+        let spawnPauseButton = SKAction.run{
+            self.pauseButton.position = CGPoint(x: self.gameArea.width * 0.1, y: self.gameArea.height * 0.9)
+            self.pauseButton.level = self
+            self.cameraViewNode.addChild(self.pauseButton)
+        }
+        
+        let createInterfaces = SKAction.run{
+            
+            self.currentSceneState = .inGame
+
+            self.joystick.position = CGPoint(x: self.gameArea.width * 0.2, y: self.gameArea.height * 0.2)
+            self.joystick.restPosition = self.joystick.position
+            self.joystick.gameContentNode = self.gameContentNode
+            self.cameraViewNode.addChild(self.joystick)
+            
+            self.shootButton.position = CGPoint(x: self.gameArea.width * 0.8, y: self.gameArea.height * 0.2)
+            self.shootButton.gameContentNode = self.gameContentNode
+            self.cameraViewNode.addChild(self.shootButton)
+
+            /*self.charSelect.gameContentNode = self.gameContentNode
+            self.charSelect.position = CGPoint(x: 0, y: self.gameArea.height * 0.8)
+            self.cameraViewNode.addChild(self.charSelect)*/
+        
+            self.playerInfo.gameContentNode = self.gameContentNode
+            self.playerInfo.position = CGPoint(x: self.gameArea.width * 0.7, y: self.gameArea.height * 0.8)
+            self.cameraViewNode.addChild(self.playerInfo)
+        }
+        
+        run(SKAction.sequence([createInterfaces, hideWhiteScreen, threeSec, wait1sec, twoSec, wait1sec, oneSec, wait1sec, hideLabel, hideLabel2, goodluck, spawnPauseButton, wait1sec, hideLabel3]))
+    }
+    
+    func startWave1(){
+        currentWave = 1
+        addEnemy(enemy: UnpredictableEnemy(), xPercent: 50, yPercent: 60)
+        addEnemy(enemy: WeakEnemy(), xPercent: 50, yPercent: 70)
+        addEnemy(enemy: UnpredictableEnemy(), xPercent: 50, yPercent: 80)
+    }
+    
+    func startWave2(){
+        let wait2Sec = SKAction.wait(forDuration: 2)
+        let showLabel2 = SKAction.run{
+            self.textLabel2.isHidden = false
+            self.textLabel2.text = "Wave 2"
+        }
+        let hideLabel2 = SKAction.run{
+            self.textLabel2.isHidden = true
+        }
+        let giveCandy = SKAction.run{
+            self.addCandy(hpCandy: HPCandy(), xPercent: 50, yPercent: 30, heal: 50)
+        }
+        let reallyStartWave = SKAction.run{
+            self.currentWave = 2
+            
+            for column in -1...1{
+                var row = 0
+                self.addEnemy(enemy: WeakEnemy(), xPercent: CGFloat(50 + column * 30), yPercent: CGFloat(65 + row * 10))
+                row = 1
+                self.addEnemy(enemy: UnpredictableEnemy(), xPercent: CGFloat(50 + column * 30), yPercent: CGFloat(65 + row * 10))
+                
+            }
+            
+        }
+        run(SKAction.sequence([showLabel2, giveCandy, wait2Sec, reallyStartWave, hideLabel2]))
+        
+    }
+    
+    func startWave3(){
+        let wait2Sec = SKAction.wait(forDuration: 2)
+        let showLabel2 = SKAction.run{
+            self.textLabel2.isHidden = false
+            self.textLabel2.text = "Wave 3 - Stay on the left!"
+        }
+        let hideLabel2 = SKAction.run{
+            self.textLabel2.isHidden = true
+        }
+        let giveCandy = SKAction.run{
+            self.addCandy(hpCandy: HPCandy(), xPercent: 30, yPercent: 80, heal: 50)
+            self.addCandy(hpCandy: HPCandy(), xPercent: 30, yPercent: 20, heal: 50)
+        }
+        let reallyStartWave = SKAction.run{
+            self.currentWave = 3
+            
+            for column in 0...2{
+                for row in -2...2{
+                    var enemy : Enemy
+                    if (column + row) % 2 == 0{
+                        enemy = WeakEnemy()
+                    }
+                    else{
+                        enemy = UnpredictableEnemy()
+                    }
+                    
+                    self.addEnemy(enemy: enemy, xPercent: CGFloat(60 + column * 15), yPercent: CGFloat(50 + 15 * row), maxHp : 45)
+
+                }
+            }
+        }
+        run(SKAction.sequence([showLabel2, giveCandy, wait2Sec, reallyStartWave, hideLabel2]))
+    }
+    
+    func startWave4(){
+        let wait2Sec = SKAction.wait(forDuration: 2)
+        let showLabel2 = SKAction.run{
+            self.textLabel2.isHidden = false
+            self.textLabel2.text = "Final wave - Stay in the middle!"
+        }
+        let hideLabel2 = SKAction.run{
+            self.textLabel2.isHidden = true
+        }
+        let reallyStartWave = SKAction.run{
+            self.currentWave = 4
+            
+            for row in -1...1{
+                for column in -1...1{
+                    if row != 0 || column != 0{
+                        self.addEnemy(enemy: UnpredictableEnemy(), xPercent: CGFloat(50 + column * 40), yPercent: CGFloat(50 + 40 * row), maxHp : 75)
+                    }
+                    if (row + column) % 2 != 0{
+                        self.addCandy(hpCandy: HPCandy(), xPercent: CGFloat(50 + column * 20), yPercent: CGFloat(50 + row * 20), heal: 50)
+                    }
+                }
+            }
+        }
+        run(SKAction.sequence([showLabel2, wait2Sec, reallyStartWave, hideLabel2]))
+    }
+    
+    override func transitionToPostGame(){
+        textLabel.isHidden = false
+        whiteScreen.isHidden = false
+        currentSceneState = .postGame
+        
+        if player.currentPlayerState == Player.playerState.dead{
+            whiteScreen.texture = SKTexture(imageNamed: "RedSquare")
+            whiteScreen.alpha = 0.3
+            textLabel.text = "Defeated"
+        }
+        else{
+            textLabel.text = "You won"
+        }
+        
+        joystick.isHidden = true
+        playerInfo.isHidden = true
+        shootButton.isHidden = true
+        
+        let wait1Sec = SKAction.wait(forDuration: 1)
+        let showLabel2 = SKAction.run{
+            self.textLabel2.isHidden = false
+            self.textLabel2.text = "Tap to continue"
+            self.currentSceneState = .waitingToLeave
+        }
+        
+        run(SKAction.sequence([wait1Sec, showLabel2]))
+    }
+    
+    
+    
+}
